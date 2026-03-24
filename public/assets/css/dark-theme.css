@@ -1,0 +1,12 @@
+/* dark-theme.css */
+body {
+    background-color: #343a40;
+    color: #fff;
+}
+
+.navbar {
+    background-color: #343a40;
+    color: #fff;
+}
+
+/* Estilos adicionales para otros componentes y elementos en modo oscuro */

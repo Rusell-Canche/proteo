@@ -1,0 +1,18 @@
+Consultardocumentos.vue 
+
+const openFancybox = (documento) => {
+      const items = documento['Recurso Digital'].map((image, index) => ({
+        src: `http://192.168.1.93:8000/storage/${encodeURIComponent(image)}`,
+        opts: {
+          caption: documento['Recurso Digital'][index]
+        }
+      }));
+
+      Fancybox.show(items);
+    };
+
+Home .vue 
+  const getThumbnail = (relativePath) => {
+      const baseUrl = 'http://192.168.1.93:8000/storage';
+      return `${baseUrl}/${encodeURIComponent(relativePath)}`;
+    };
