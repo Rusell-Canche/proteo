@@ -237,11 +237,13 @@ export default {
     const editarDocumento = (documento) => {
       console.log("Editando documento:", documento);
       documentoEdit.value = { ...documento }; // Clonar el documento
+      uploadedFiles.value = []; // ← Limpiar archivos previos
       isModalOpen.value = true;
     };
 
     const closeModal = () => {
       isModalOpen.value = false;
+      uploadedFiles.value = []; // ← Limpiar al cerrar
     };
 
     // Eliminar documento
@@ -337,6 +339,7 @@ export default {
         });
 
         Swal.fire('Éxito', 'Documento actualizado correctamente', 'success');
+        uploadedFiles.value = []; // ← Limpiar después de guardar
         closeModal();
         onColeccionSelected(); // Recargar la lista de documentos
       } catch (error) {
