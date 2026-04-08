@@ -4,13 +4,8 @@
 
     <!-- Buscador -->
     <div class="mb-4 d-flex justify-content-center">
-      <input
-        v-model="searchTerm"
-        type="text"
-        placeholder="Buscar documentos..."
-        class="form-control w-50"
-        @input="currentPage = 1"
-      />
+      <input v-model="searchTerm" type="text" placeholder="Buscar documentos..." class="form-control w-50"
+        @input="currentPage = 1" />
     </div>
 
     <!-- SELECT PARA FILTRAR POR COLECCIÓN -->
@@ -27,27 +22,15 @@
     <p v-if="documentosFiltrados.length === 0" class="text-center">No hay documentos pendientes.</p>
 
     <!-- Lista de documentos filtrados y paginados -->
-    <div
-      v-for="(doc, index) in documentosPaginados"
-      :key="index"
-      class="documento mb-3 p-3 border rounded shadow-sm"
-    >
+    <div v-for="(doc, index) in documentosPaginados" :key="index" class="documento mb-3 p-3 border rounded shadow-sm">
       <h5 class="text-primary">Fondo al que pertenece: {{ cleanCollectionName(doc._coleccion) }}</h5>
 
-      <div
-        v-for="field in Object.keys(doc).filter(field => !isHiddenField(field))"
-        :key="field"
-        class="mb-2"
-      >
+      <div v-for="field in Object.keys(doc).filter(field => !isHiddenField(field))" :key="field" class="mb-2">
         <p>
           <strong>{{ formatFieldName(field) }}:</strong>
           <span v-if="field === 'Recurso Digital' && Array.isArray(doc[field])">
-            <a
-              v-for="(image, imgIndex) in doc[field]"
-              :key="imgIndex"
-              :href="getImageUrl(image)"
-              :data-fancybox="'gallery-' + index"
-            >
+            <a v-for="(image, imgIndex) in doc[field]" :key="imgIndex" :href="getImageUrl(image)"
+              :data-fancybox="'gallery-' + index">
               <i class="fas fa-external-link-alt"></i>
             </a>
           </span>
@@ -56,50 +39,65 @@
       </div>
 
       <div class="d-flex justify-content-start">
-        <button
-          @click="aprobarDocumento(doc._coleccion, doc._id?.['$oid'] || doc._id)"
-          class="btn btn-success me-2"
-        >
+        <button @click="aprobarDocumento(doc._coleccion, doc._id?.['$oid'] || doc._id)" class="btn btn-success me-2">
           Aprobar
         </button>
-        <button
-          @click="eliminarDocumento(doc._coleccion, doc._id?.['$oid'] || doc._id)"
-          class="btn btn-danger"
-        >
+        <button @click="eliminarDocumento(doc._coleccion, doc._id?.['$oid'] || doc._id)" class="btn btn-danger">
           Denegar
         </button>
       </div>
     </div>
 
-    <!-- Paginador -->
+    <!-- Paginador mejorado -->
     <div v-if="totalPages > 1" class="d-flex justify-content-center mt-4">
       <nav>
-        <ul class="pagination">
+        <ul class="pagination flex-wrap">
+          <!-- Anterior -->
           <li class="page-item" :class="{ disabled: currentPage === 1 }">
             <button class="page-link" @click="currentPage--" :disabled="currentPage === 1">
               Anterior
             </button>
           </li>
 
-          <li
-            class="page-item"
-            v-for="page in totalPages"
-            :key="page"
-            :class="{ active: currentPage === page }"
-          >
+          <!-- Primera página -->
+          <li class="page-item" :class="{ active: currentPage === 1 }">
+            <button class="page-link" @click="currentPage = 1">1</button>
+          </li>
+
+          <!-- Ellipsis izquierda -->
+          <li v-if="paginasVisibles[0] > 2" class="page-item disabled">
+            <span class="page-link">…</span>
+          </li>
+
+          <!-- Páginas del rango -->
+          <li v-for="page in paginasVisibles" :key="page" class="page-item" :class="{ active: currentPage === page }">
             <button class="page-link" @click="currentPage = page">{{ page }}</button>
           </li>
 
+          <!-- Ellipsis derecha -->
+          <li v-if="paginasVisibles[paginasVisibles.length - 1] < totalPages - 1" class="page-item disabled">
+            <span class="page-link">…</span>
+          </li>
+
+          <!-- Última página -->
+          <li v-if="totalPages > 1" class="page-item" :class="{ active: currentPage === totalPages }">
+            <button class="page-link" @click="currentPage = totalPages">{{ totalPages }}</button>
+          </li>
+
+          <!-- Siguiente -->
           <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-            <button
-              class="page-link"
-              @click="currentPage++"
-              :disabled="currentPage === totalPages"
-            >
+            <button class="page-link" @click="currentPage++" :disabled="currentPage === totalPages">
               Siguiente
             </button>
           </li>
         </ul>
+
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-size: 13px; color: #6c757d;">Ir a página:</span>
+          <input type="number" min="1" :max="totalPages" v-model.number="jumpPage" @keyup.enter="goToPage"
+            class="form-control" style="width: 70px;" placeholder="#" />
+          <button class="btn btn-outline-primary btn-sm" @click="goToPage">Ir</button>
+        </div>
       </nav>
     </div>
   </div>
@@ -119,6 +117,7 @@ export default {
       plantillas: [],
       currentPage: 1,
       itemsPerPage: 3,
+      jumpPage: null,
     };
   },
 
@@ -171,9 +170,26 @@ export default {
     totalPages() {
       return Math.ceil(this.documentosFiltrados.length / this.itemsPerPage);
     },
+
+    paginasVisibles() {
+      const rango = 2; // páginas a cada lado de la actual
+      const inicio = Math.max(2, this.currentPage - rango);
+      const fin = Math.min(this.totalPages - 1, this.currentPage + rango);
+      const paginas = [];
+      for (let i = inicio; i <= fin; i++) {
+        paginas.push(i);
+      }
+      return paginas;
+    },
   },
 
   methods: {
+    goToPage() {
+      if (this.jumpPage >= 1 && this.jumpPage <= this.totalPages) {
+        this.currentPage = this.jumpPage;
+        this.jumpPage = null;
+      }
+    },
     async obtenerPendientes() {
       try {
         const response = await axios.get("/documentos-pendientes");
@@ -241,8 +257,8 @@ export default {
 .documento {
   background-color: #f9f9f9;
 }
+
 .pagination {
   flex-wrap: wrap !important;
 }
-
 </style>
